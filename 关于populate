@@ -1,0 +1,93 @@
+/* nodejs在使用mongdb数据库中经常会使用到嵌套，比如一个多级分类等。这里我使用学校-->学院-->学生来展示使用populate处理嵌套。 */
+
+/* 定义modal
+在模式中，我们需要使用Schema.ObjectId来表示要指向数据在mongodb数据库中的_id。 */
+
+// 学校
+
+// 在学校的Schema中，colleges属性是要包含的学院的_id属性数组。
+var SchoolSchema = new Schema({
+ name: String,
+ colleges: [{
+ type: Schema.ObjectId,
+ ref: 'College'
+ }],
+ createTime: {
+ type: Date,
+ default: Date.now()
+ }
+});
+var School = mongoose.model('School', SchoolSchema);
+
+
+// 学院
+
+var CollegeSchema = new Schema({
+ name: String,
+ students: [{
+ type: Schema.ObjectId,
+ ref: 'Student'
+ }],
+ createTime: {
+ type: Date,
+ default: Date.now()
+ }
+});
+var College = mongoose.model('College', CollegeSchema);
+
+
+
+// 学生
+
+var StudentSchema = new Schema({
+ name: String,
+ sex: String,
+ age: Number,
+ createTime: {
+ type: Date,
+ default: Date.now()
+ }
+});
+var Student = mongoose.model('Student', StudentSchema);
+
+
+// 查找
+// 查找学校并找到指向的学院
+
+School
+ .find()
+ .populate('colleges', ['_id','name'])
+ .exec((err, schools) => {
+ if (err) {
+ console.log(err)
+ }
+ console.log(schools)
+ })
+
+
+/* populate的第一个参数是学校表中需要指向学院表的属性，即colleges；第二个参数为要在学院中查找的属性。如果不填写第二个参数，则默认全都查出。
+
+这样查找出的结果中，学院的学生属性是该学院包含的学生的_id属性。如果需要都查找出来需要使用嵌套populate。 */
+
+// 嵌套
+
+
+School
+ .find()
+ .populate({
+ path: 'colleges',
+ select: ['_id', 'name'],
+ // model: 'College',
+ populate: {
+ path: 'students',
+ select: ['_id', 'name']
+ // model: 'Student'
+ }
+ })
+ .sort({
+ createTime: -1
+ }).exec(function(err, schools) {
+ if (err) {
+ console.log(err)
+ }
+ });
